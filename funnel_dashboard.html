@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marketing Funnel Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root{
+    --bg: #F6F5F1;
+    --panel: #FFFFFF;
+    --ink: #16202B;
+    --ink-soft: #55606B;
+    --ink-mute: #8B9299;
+    --border: #E4E1D8;
+    --accent: #C4622D;
+    --accent-soft: #F4E3D6;
+    --navy: #1F3A5F;
+    --navy-soft: #E4EBF3;
+    --good: #2E7D5B;
+    --good-soft: #E1F0E8;
+    --bad: #B03A3A;
+    --bad-soft: #F6E2E2;
+    --radius: 10px;
+    --shadow: 0 1px 2px rgba(20,20,15,0.04), 0 1px 10px rgba(20,20,15,0.04);
+  }
+  * { box-sizing: border-box; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap{ max-width: 1240px; margin: 0 auto; padding: 32px 28px 64px; }
+
+  header.top{
+    display:flex; justify-content: space-between; align-items: flex-end;
+    gap: 20px; margin-bottom: 28px; flex-wrap: wrap;
+  }
+  header.top h1{
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 600; font-size: 28px; margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  header.top p{ margin:0; color: var(--ink-soft); font-size: 14px; max-width: 560px; }
+  .badge{
+    font-size: 12px; font-weight: 600; color: var(--accent);
+    background: var(--accent-soft); padding: 4px 10px; border-radius: 999px;
+    display:inline-block; margin-bottom:8px; letter-spacing: 0.02em;
+  }
+
+  .controls{
+    display:flex; gap:10px; flex-wrap: wrap; align-items:center;
+    background: var(--panel); border:1px solid var(--border); border-radius: var(--radius);
+    padding: 12px 16px; margin-bottom: 24px; box-shadow: var(--shadow);
+  }
+  .controls label{ font-size:12px; color:var(--ink-mute); font-weight:600; text-transform:uppercase; letter-spacing:0.04em; margin-right:6px;}
+  .controls select, .controls .chip-group{ font-size: 14px; }
+  select{
+    font-family:inherit; font-size:14px; padding:7px 10px; border-radius:7px;
+    border:1px solid var(--border); background: #fff; color: var(--ink); cursor:pointer;
+  }
+  .chip-group{ display:flex; gap:6px; flex-wrap:wrap; }
+  .chip{
+    font-size:13px; padding:6px 12px; border-radius:999px; border:1px solid var(--border);
+    background:#fff; cursor:pointer; color: var(--ink-soft); user-select:none; transition: all .15s ease;
+  }
+  .chip.active{ background: var(--navy); border-color: var(--navy); color:#fff; }
+  .spacer{ flex:1; }
+  .reset-btn{
+    font-size:13px; padding:6px 12px; border-radius:7px; border:1px solid var(--border);
+    background:#fff; cursor:pointer; color: var(--ink-soft);
+  }
+  .reset-btn:hover{ background: var(--bg); }
+
+  .kpi-grid{
+    display:grid; grid-template-columns: repeat(5, 1fr); gap:12px; margin-bottom: 24px;
+  }
+  .kpi{
+    background: var(--panel); border:1px solid var(--border); border-radius: var(--radius);
+    padding: 16px 18px; box-shadow: var(--shadow);
+  }
+  .kpi .label{ font-size:12px; color:var(--ink-mute); font-weight:600; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:8px;}
+  .kpi .value{ font-family:'Source Serif 4', Georgia, serif; font-size:26px; font-weight:600; line-height:1;}
+  .kpi .sub{ font-size:12px; color:var(--ink-soft); margin-top:6px;}
+  .kpi .sub.good{ color: var(--good); }
+  .kpi .sub.bad{ color: var(--bad); }
+
+  .grid2{ display:grid; grid-template-columns: 1.15fr 0.85fr; gap:16px; margin-bottom:16px; }
+  .grid1{ display:grid; grid-template-columns: 1fr; gap:16px; margin-bottom:16px; }
+  .panel{
+    background: var(--panel); border:1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 20px 14px; box-shadow: var(--shadow);
+  }
+  .panel h2{
+    font-size:14px; font-weight:600; margin:0 0 2px; color: var(--ink);
+  }
+  .panel .desc{ font-size:12.5px; color: var(--ink-mute); margin: 0 0 14px; }
+  .chart-box{ position:relative; width:100%; }
+
+  .funnel-row{ display:flex; align-items:center; gap:10px; margin-bottom: 8px; }
+  .funnel-row .fname{ width: 108px; font-size:12.5px; color: var(--ink-soft); flex-shrink:0; text-align:right; }
+  .funnel-row .fbar-wrap{ flex:1; background: var(--bg); border-radius:6px; height: 26px; position:relative; overflow:hidden; }
+  .funnel-row .fbar{ height:100%; border-radius:6px; display:flex; align-items:center; }
+  .funnel-row .fval{ font-size:12.5px; font-weight:600; color:#fff; padding-left:10px; white-space:nowrap; }
+  .funnel-row .fpct{ width:54px; font-size:12px; color: var(--ink-mute); text-align:left; flex-shrink:0; }
+
+  table.data-table{ width:100%; border-collapse: collapse; font-size: 13px; }
+  table.data-table th{
+    text-align:right; font-weight:600; color: var(--ink-mute); font-size:11.5px;
+    text-transform:uppercase; letter-spacing:0.02em; padding: 6px 8px; border-bottom: 1px solid var(--border);
+  }
+  table.data-table th:first-child, table.data-table td:first-child{ text-align:left; }
+  table.data-table td{ padding: 8px 8px; border-bottom: 1px solid var(--border); text-align:right; color: var(--ink); }
+  table.data-table tbody tr:hover{ background: var(--bg); cursor: pointer; }
+  table.data-table tbody tr.dim{ opacity: 0.35; }
+  .pill{ font-size:11px; padding:2px 7px; border-radius:999px; font-weight:600; }
+  .pill.good{ background: var(--good-soft); color: var(--good); }
+  .pill.bad{ background: var(--bad-soft); color: var(--bad); }
+  .pill.mid{ background: var(--navy-soft); color: var(--navy); }
+
+  .legend-row{ display:flex; flex-wrap:wrap; gap:14px; margin-bottom:10px; font-size:12px; color:var(--ink-soft); }
+  .legend-row span.sw{ display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; }
+
+  .insight-list{ margin:0; padding-left: 18px; font-size: 13.5px; line-height: 1.65; color: var(--ink-soft); }
+  .insight-list li{ margin-bottom: 6px; }
+  .insight-list b{ color: var(--ink); font-weight:600; }
+
+  footer{ margin-top: 32px; font-size:12px; color: var(--ink-mute); text-align:center; }
+
+  @media (max-width: 980px){
+    .kpi-grid{ grid-template-columns: repeat(2,1fr); }
+    .grid2{ grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <span class="badge">Funnel performance dashboard</span>
+      <h1>Marketing funnel: visitor to customer</h1>
+      <p>Jan – Jun 2026 &middot; 7 channels &middot; interactive filters below. Click a channel row or chip to isolate it across every chart.</p>
+    </div>
+  </header>
+
+  <div class="controls">
+    <label>Month range</label>
+    <select id="monthFrom"></select>
+    <span style="color:var(--ink-mute); font-size:13px;">to</span>
+    <select id="monthTo"></select>
+    <div class="spacer"></div>
+    <label>Channel</label>
+    <div class="chip-group" id="channelChips"></div>
+    <button class="reset-btn" id="resetBtn">Reset filters</button>
+  </div>
+
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h2>Funnel drop-off</h2>
+      <p class="desc">Volume and stage-to-stage conversion for the selected range and channel(s)</p>
+      <div id="funnelViz"></div>
+    </div>
+    <div class="panel">
+      <h2>Channel mix</h2>
+      <p class="desc">Share of leads and customers by channel</p>
+      <div class="chart-box" style="height:280px;">
+        <canvas id="mixChart" role="img" aria-label="Donut chart showing customer share by channel"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h2>Monthly trend</h2>
+      <p class="desc">Leads and customers over time, with lead-to-customer conversion rate</p>
+      <div class="chart-box" style="height:280px;">
+        <canvas id="trendChart" role="img" aria-label="Combo chart of monthly leads, customers and conversion rate"></canvas>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>CAC vs ROI</h2>
+      <p class="desc">Bubble size = customers acquired. Paid channels only.</p>
+      <div class="chart-box" style="height:280px;">
+        <canvas id="cacChart" role="img" aria-label="Bubble chart of customer acquisition cost versus return on investment by channel"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid1">
+    <div class="panel">
+      <h2>Channel performance</h2>
+      <p class="desc">Click any row to isolate that channel across the dashboard</p>
+      <table class="data-table" id="channelTable">
+        <thead>
+          <tr>
+            <th>Channel</th><th>Visitors</th><th>Leads</th><th>Customers</th>
+            <th>Visitor&rarr;Lead</th><th>Lead&rarr;Customer</th><th>CAC</th><th>ROI</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid1">
+    <div class="panel">
+      <h2>Key takeaways</h2>
+      <p class="desc">Updates automatically based on your current filter selection</p>
+      <ul class="insight-list" id="insightList"></ul>
+    </div>
+  </div>
+
+  <footer>Synthetic demo dataset for illustration &middot; regenerate with real CRM/analytics exports using the accompanying Python scripts</footer>
+</div>
+
+<script>
+const RAW = [{"month": "2026-01", "channel": "Organic Search", "visitors": 18536, "leads": 696, "mqls": 402, "sqls": 189, "opportunities": 102, "customers": 32, "spend": 3776.36, "avg_deal_value": 4274.97, "revenue": 136799.14}, {"month": "2026-01", "channel": "Paid Search", "visitors": 12552, "leads": 785, "mqls": 393, "sqls": 143, "opportunities": 68, "customers": 19, "spend": 19895.39, "avg_deal_value": 3668.35, "revenue": 69698.6}, {"month": "2026-01", "channel": "Paid Social", "visitors": 17930, "leads": 376, "mqls": 120, "sqls": 30, "opportunities": 11, "customers": 1, "spend": 19319.08, "avg_deal_value": 2716.95, "revenue": 2716.95}, {"month": "2026-01", "channel": "Email", "visitors": 8878, "leads": 758, "mqls": 402, "sqls": 192, "opportunities": 116, "customers": 36, "spend": 2037.57, "avg_deal_value": 3249.17, "revenue": 116970.05}, {"month": "2026-01", "channel": "Referral", "visitors": 2891, "leads": 338, "mqls": 225, "sqls": 155, "opportunities": 105, "customers": 43, "spend": 520.56, "avg_deal_value": 5411.34, "revenue": 232687.8}, {"month": "2026-01", "channel": "Direct", "visitors": 6487, "leads": 296, "mqls": 124, "sqls": 44, "opportunities": 23, "customers": 7, "spend": 0.0, "avg_deal_value": 4744.81, "revenue": 33213.7}, {"month": "2026-01", "channel": "Content/Blog", "visitors": 9930, "leads": 290, "mqls": 115, "sqls": 32, "opportunities": 13, "customers": 3, "spend": 4068.72, "avg_deal_value": 3450.78, "revenue": 10352.34}, {"month": "2026-02", "channel": "Organic Search", "visitors": 16578, "leads": 646, "mqls": 344, "sqls": 136, "opportunities": 78, "customers": 27, "spend": 3662.97, "avg_deal_value": 4082.36, "revenue": 110223.77}, {"month": "2026-02", "channel": "Paid Search", "visitors": 11737, "leads": 744, "mqls": 366, "sqls": 149, "opportunities": 71, "customers": 19, "spend": 20783.03, "avg_deal_value": 3941.99, "revenue": 74897.73}, {"month": "2026-02", "channel": "Paid Social", "visitors": 19121, "leads": 448, "mqls": 173, "sqls": 43, "opportunities": 18, "customers": 3, "spend": 17419.39, "avg_deal_value": 2679.35, "revenue": 8038.04}, {"month": "2026-02", "channel": "Email", "visitors": 9471, "leads": 904, "mqls": 540, "sqls": 303, "opportunities": 143, "customers": 53, "spend": 2008.7, "avg_deal_value": 3196.66, "revenue": 169422.75}, {"month": "2026-02", "channel": "Referral", "visitors": 3034, "leads": 366, "mqls": 215, "sqls": 126, "opportunities": 88, "customers": 44, "spend": 487.04, "avg_deal_value": 5230.51, "revenue": 230142.23}, {"month": "2026-02", "channel": "Direct", "visitors": 6860, "leads": 296, "mqls": 158, "sqls": 64, "opportunities": 31, "customers": 9, "spend": 0.0, "avg_deal_value": 4893.86, "revenue": 44044.77}, {"month": "2026-02", "channel": "Content/Blog", "visitors": 10898, "leads": 308, "mqls": 134, "sqls": 38, "opportunities": 15, "customers": 3, "spend": 4052.21, "avg_deal_value": 3493.52, "revenue": 10480.55}, {"month": "2026-03", "channel": "Organic Search", "visitors": 19085, "leads": 711, "mqls": 346, "sqls": 140, "opportunities": 74, "customers": 22, "spend": 3471.78, "avg_deal_value": 4314.89, "revenue": 94927.59}, {"month": "2026-03", "channel": "Paid Search", "visitors": 13028, "leads": 974, "mqls": 474, "sqls": 183, "opportunities": 90, "customers": 21, "spend": 21970.83, "avg_deal_value": 3761.58, "revenue": 78993.25}, {"month": "2026-03", "channel": "Paid Social", "visitors": 21276, "leads": 560, "mqls": 192, "sqls": 49, "opportunities": 19, "customers": 3, "spend": 19028.54, "avg_deal_value": 2571.7, "revenue": 7715.1}, {"month": "2026-03", "channel": "Email", "visitors": 9970, "leads": 901, "mqls": 501, "sqls": 278, "opportunities": 148, "customers": 54, "spend": 2219.05, "avg_deal_value": 3375.8, "revenue": 182293.43}, {"month": "2026-03", "channel": "Referral", "visitors": 2991, "leads": 342, "mqls": 241, "sqls": 138, "opportunities": 82, "customers": 37, "spend": 473.44, "avg_deal_value": 5414.61, "revenue": 200340.51}, {"month": "2026-03", "channel": "Direct", "visitors": 7630, "leads": 318, "mqls": 178, "sqls": 66, "opportunities": 33, "customers": 10, "spend": 0.0, "avg_deal_value": 4787.11, "revenue": 47871.07}, {"month": "2026-03", "channel": "Content/Blog", "visitors": 10744, "leads": 356, "mqls": 139, "sqls": 42, "opportunities": 19, "customers": 4, "spend": 3752.61, "avg_deal_value": 3834.99, "revenue": 15339.94}, {"month": "2026-04", "channel": "Organic Search", "visitors": 18065, "leads": 715, "mqls": 402, "sqls": 172, "opportunities": 97, "customers": 29, "spend": 3540.64, "avg_deal_value": 4204.41, "revenue": 121927.91}, {"month": "2026-04", "channel": "Paid Search", "visitors": 13310, "leads": 815, "mqls": 449, "sqls": 177, "opportunities": 80, "customers": 23, "spend": 20927.85, "avg_deal_value": 3929.57, "revenue": 90380.13}, {"month": "2026-04", "channel": "Paid Social", "visitors": 22829, "leads": 548, "mqls": 179, "sqls": 48, "opportunities": 19, "customers": 3, "spend": 19707.11, "avg_deal_value": 2559.67, "revenue": 7679.0}, {"month": "2026-04", "channel": "Email", "visitors": 9665, "leads": 771, "mqls": 429, "sqls": 200, "opportunities": 119, "customers": 42, "spend": 2027.67, "avg_deal_value": 3251.87, "revenue": 136578.4}, {"month": "2026-04", "channel": "Referral", "visitors": 3432, "leads": 412, "mqls": 321, "sqls": 188, "opportunities": 155, "customers": 73, "spend": 478.57, "avg_deal_value": 5166.16, "revenue": 377129.88}, {"month": "2026-04", "channel": "Direct", "visitors": 7139, "leads": 333, "mqls": 163, "sqls": 68, "opportunities": 36, "customers": 10, "spend": 0.0, "avg_deal_value": 4622.31, "revenue": 46223.09}, {"month": "2026-04", "channel": "Content/Blog", "visitors": 9909, "leads": 286, "mqls": 137, "sqls": 41, "opportunities": 16, "customers": 3, "spend": 4077.06, "avg_deal_value": 3707.13, "revenue": 11121.38}, {"month": "2026-05", "channel": "Organic Search", "visitors": 19090, "leads": 734, "mqls": 405, "sqls": 154, "opportunities": 87, "customers": 29, "spend": 3689.53, "avg_deal_value": 4028.17, "revenue": 116817.04}, {"month": "2026-05", "channel": "Paid Search", "visitors": 14289, "leads": 826, "mqls": 366, "sqls": 144, "opportunities": 74, "customers": 21, "spend": 26238.0, "avg_deal_value": 4197.55, "revenue": 88148.63}, {"month": "2026-05", "channel": "Paid Social", "visitors": 23167, "leads": 555, "mqls": 209, "sqls": 54, "opportunities": 21, "customers": 4, "spend": 17304.46, "avg_deal_value": 2469.22, "revenue": 9876.87}, {"month": "2026-05", "channel": "Email", "visitors": 9936, "leads": 811, "mqls": 489, "sqls": 289, "opportunities": 147, "customers": 54, "spend": 1838.73, "avg_deal_value": 3005.73, "revenue": 162309.41}, {"month": "2026-05", "channel": "Referral", "visitors": 3264, "leads": 425, "mqls": 299, "sqls": 163, "opportunities": 104, "customers": 49, "spend": 481.74, "avg_deal_value": 5501.11, "revenue": 269554.33}, {"month": "2026-05", "channel": "Direct", "visitors": 7941, "leads": 358, "mqls": 169, "sqls": 79, "opportunities": 43, "customers": 10, "spend": 0.0, "avg_deal_value": 4782.08, "revenue": 47820.82}, {"month": "2026-05", "channel": "Content/Blog", "visitors": 10755, "leads": 344, "mqls": 144, "sqls": 42, "opportunities": 19, "customers": 4, "spend": 3759.94, "avg_deal_value": 3712.34, "revenue": 14849.37}, {"month": "2026-06", "channel": "Organic Search", "visitors": 20284, "leads": 741, "mqls": 386, "sqls": 185, "opportunities": 105, "customers": 30, "spend": 3660.63, "avg_deal_value": 4331.95, "revenue": 129958.58}, {"month": "2026-06", "channel": "Paid Search", "visitors": 15557, "leads": 1094, "mqls": 461, "sqls": 168, "opportunities": 92, "customers": 24, "spend": 22488.2, "avg_deal_value": 3797.67, "revenue": 91144.15}, {"month": "2026-06", "channel": "Paid Social", "visitors": 24068, "leads": 490, "mqls": 170, "sqls": 31, "opportunities": 11, "customers": 1, "spend": 16877.0, "avg_deal_value": 2483.36, "revenue": 2483.36}, {"month": "2026-06", "channel": "Email", "visitors": 11363, "leads": 855, "mqls": 494, "sqls": 249, "opportunities": 166, "customers": 51, "spend": 2116.32, "avg_deal_value": 3212.13, "revenue": 163818.57}, {"month": "2026-06", "channel": "Referral", "visitors": 3452, "leads": 381, "mqls": 276, "sqls": 168, "opportunities": 108, "customers": 48, "spend": 490.37, "avg_deal_value": 5023.94, "revenue": 241149.02}, {"month": "2026-06", "channel": "Direct", "visitors": 8104, "leads": 383, "mqls": 215, "sqls": 77, "opportunities": 46, "customers": 11, "spend": 0.0, "avg_deal_value": 4824.28, "revenue": 53067.05}, {"month": "2026-06", "channel": "Content/Blog", "visitors": 11905, "leads": 365, "mqls": 156, "sqls": 46, "opportunities": 19, "customers": 3, "spend": 4169.92, "avg_deal_value": 3573.53, "revenue": 10720.59}];
+
+const STAGES = ['visitors','leads','mqls','sqls','opportunities','customers'];
+const STAGE_LABELS = ['Visitors','Leads','MQLs','SQLs','Opportunities','Customers'];
+const STAGE_COLORS = ['#1F3A5F','#2E5C8A','#3E7CA6','#6FA5A0','#C4622D','#B03A3A'];
+const CHANNEL_COLORS = {
+  'Referral':'#2E7D5B', 'Email':'#1F3A5F', 'Organic Search':'#3E7CA6',
+  'Direct':'#8B9299', 'Paid Search':'#C4622D', 'Content/Blog':'#B08D57', 'Paid Social':'#B03A3A'
+};
+
+const months = [...new Set(RAW.map(d=>d.month))].sort();
+const channels = [...new Set(RAW.map(d=>d.channel))];
+
+const monthFrom = document.getElementById('monthFrom');
+const monthTo = document.getElementById('monthTo');
+months.forEach(m=>{
+  monthFrom.innerHTML += `<option value="${m}">${m}</option>`;
+  monthTo.innerHTML += `<option value="${m}">${m}</option>`;
+});
+monthFrom.value = months[0];
+monthTo.value = months[months.length-1];
+
+let selectedChannels = new Set(channels);
+
+const chipWrap = document.getElementById('channelChips');
+channels.forEach(c=>{
+  const chip = document.createElement('div');
+  chip.className='chip active';
+  chip.textContent = c;
+  chip.dataset.channel = c;
+  chip.addEventListener('click', ()=>{
+    if(selectedChannels.has(c)){
+      if(selectedChannels.size>1){ selectedChannels.delete(c); chip.classList.remove('active'); }
+    } else {
+      selectedChannels.add(c); chip.classList.add('active');
+    }
+    render();
+  });
+  chipWrap.appendChild(chip);
+});
+
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  monthFrom.value = months[0];
+  monthTo.value = months[months.length-1];
+  selectedChannels = new Set(channels);
+  document.querySelectorAll('.chip').forEach(c=>c.classList.add('active'));
+  render();
+});
+monthFrom.addEventListener('change', render);
+monthTo.addEventListener('change', render);
+
+function fmtInt(n){ return Math.round(n).toLocaleString(); }
+function fmtPct(n){ return (Math.round(n*100)/100).toFixed(2) + '%'; }
+function fmtMoney(n){ return '$' + Math.round(n).toLocaleString(); }
+
+function getFiltered(){
+  const fromIdx = months.indexOf(monthFrom.value);
+  const toIdx = months.indexOf(monthTo.value);
+  const lo = Math.min(fromIdx, toIdx), hi = Math.max(fromIdx, toIdx);
+  const rangeMonths = months.slice(lo, hi+1);
+  return RAW.filter(d => rangeMonths.includes(d.month) && selectedChannels.has(d.channel));
+}
+
+let mixChart, trendChart, cacChart;
+
+function render(){
+  const data = getFiltered();
+  renderKPIs(data);
+  renderFunnel(data);
+  renderMixChart(data);
+  renderTrendChart();
+  renderCacChart(data);
+  renderTable(data);
+  renderInsights(data);
+}
+
+function renderKPIs(data){
+  const totals = {};
+  STAGES.forEach(s=> totals[s] = data.reduce((a,d)=>a+d[s],0));
+  const spend = data.reduce((a,d)=>a+d.spend,0);
+  const revenue = data.reduce((a,d)=>a+d.revenue,0);
+  const l2c = totals.leads ? totals.customers/totals.leads*100 : 0;
+  const v2l = totals.visitors ? totals.leads/totals.visitors*100 : 0;
+  const roi = spend ? (revenue-spend)/spend*100 : 0;
+
+  const kpis = [
+    {label:'Total visitors', value: fmtInt(totals.visitors), sub:''},
+    {label:'Leads captured', value: fmtInt(totals.leads), sub: fmtPct(v2l)+' of visitors'},
+    {label:'Customers won', value: fmtInt(totals.customers), sub: fmtPct(l2c)+' lead\u2192customer'},
+    {label:'Total spend', value: fmtMoney(spend), sub: 'across selected channels'},
+    {label:'Revenue / ROI', value: fmtMoney(revenue), sub: (roi>=0?'+':'')+Math.round(roi).toLocaleString()+'% ROI', cls: roi>=0?'good':'bad'},
+  ];
+  document.getElementById('kpiGrid').innerHTML = kpis.map(k=>`
+    <div class="kpi">
+      <div class="label">${k.label}</div>
+      <div class="value">${k.value}</div>
+      <div class="sub ${k.cls||''}">${k.sub}</div>
+    </div>
+  `).join('');
+}
+
+function renderFunnel(data){
+  const totals = {};
+  STAGES.forEach(s=> totals[s] = data.reduce((a,d)=>a+d[s],0));
+  const max = totals.visitors || 1;
+  let html = '';
+  STAGES.forEach((s,i)=>{
+    const val = totals[s];
+    const pctOfMax = Math.max(val/max*100, 2);
+    let convLabel = '';
+    if(i>0){
+      const prev = totals[STAGES[i-1]];
+      const conv = prev ? (val/prev*100) : 0;
+      convLabel = fmtPct(conv);
+    }
+    html += `
+      <div class="funnel-row">
+        <div class="fname">${STAGE_LABELS[i]}</div>
+        <div class="fbar-wrap">
+          <div class="fbar" style="width:${pctOfMax}%; background:${STAGE_COLORS[i]};">
+            <span class="fval">${fmtInt(val)}</span>
+          </div>
+        </div>
+        <div class="fpct">${convLabel}</div>
+      </div>`;
+  });
+  document.getElementById('funnelViz').innerHTML = html;
+}
+
+function renderMixChart(data){
+  const byChannel = {};
+  channels.forEach(c=> byChannel[c] = data.filter(d=>d.channel===c).reduce((a,d)=>a+d.customers,0));
+  const activeChannels = channels.filter(c=>selectedChannels.has(c) && byChannel[c]>0);
+  const values = activeChannels.map(c=>byChannel[c]);
+  const total = values.reduce((a,b)=>a+b,0);
+  const colors = activeChannels.map(c=>CHANNEL_COLORS[c]);
+
+  const ctx = document.getElementById('mixChart');
+  if(mixChart) mixChart.destroy();
+  mixChart = new Chart(ctx, {
+    type:'doughnut',
+    data:{ labels: activeChannels, datasets:[{ data: values, backgroundColor: colors, borderColor:'#fff', borderWidth:2 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'62%',
+      plugins:{
+        legend:{ display:false },
+        tooltip:{ callbacks:{ label: (c)=> `${c.label}: ${c.raw} customers (${(c.raw/total*100).toFixed(1)}%)` } }
+      }
+    }
+  });
+  const legendHtml = activeChannels.map((c,i)=>`<span><span class="sw" style="background:${colors[i]}"></span>${c} ${values[i]}</span>`).join('');
+  const existing = document.querySelector('#mixChart').parentElement;
+  let legendDiv = existing.parentElement.querySelector('.legend-row');
+  if(!legendDiv){
+    legendDiv = document.createElement('div');
+    legendDiv.className='legend-row';
+    existing.parentElement.insertBefore(legendDiv, existing);
+  }
+  legendDiv.innerHTML = legendHtml;
+}
+
+function renderTrendChart(){
+  const fromIdx = months.indexOf(monthFrom.value);
+  const toIdx = months.indexOf(monthTo.value);
+  const lo = Math.min(fromIdx, toIdx), hi = Math.max(fromIdx, toIdx);
+  const rangeMonths = months.slice(lo, hi+1);
+
+  const leadsArr = [], custArr = [], rateArr = [];
+  rangeMonths.forEach(m=>{
+    const rows = RAW.filter(d=>d.month===m && selectedChannels.has(d.channel));
+    const leads = rows.reduce((a,d)=>a+d.leads,0);
+    const cust = rows.reduce((a,d)=>a+d.customers,0);
+    leadsArr.push(leads); custArr.push(cust);
+    rateArr.push(leads? +(cust/leads*100).toFixed(2) : 0);
+  });
+
+  const ctx = document.getElementById('trendChart');
+  if(trendChart) trendChart.destroy();
+  trendChart = new Chart(ctx, {
+    data:{
+      labels: rangeMonths,
+      datasets:[
+        { type:'bar', label:'Leads', data: leadsArr, backgroundColor:'#3E7CA6', order:2, yAxisID:'y' },
+        { type:'bar', label:'Customers', data: custArr, backgroundColor:'#C4622D', order:2, yAxisID:'y' },
+        { type:'line', label:'Lead\u2192Customer %', data: rateArr, borderColor:'#16202B', backgroundColor:'#16202B',
+          borderWidth:2, pointRadius:4, pointBackgroundColor:'#16202B', tension:0.25, order:1, yAxisID:'y1' }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{
+        y:{ beginAtZero:true, position:'left', title:{display:true, text:'Count', font:{size:11}}, grid:{color:'#EEEBE3'} },
+        y1:{ beginAtZero:true, position:'right', title:{display:true, text:'Conversion %', font:{size:11}}, grid:{display:false} }
+      },
+      plugins:{ legend:{ display:false } }
+    }
+  });
+  const legendDiv2 = document.getElementById('trendLegend');
+  const parent = document.querySelector('#trendChart').parentElement;
+  let legendRow = parent.parentElement.querySelector('.legend-row.trend');
+  if(!legendRow){
+    legendRow = document.createElement('div');
+    legendRow.className='legend-row trend';
+    parent.parentElement.insertBefore(legendRow, parent);
+  }
+  legendRow.innerHTML = `
+    <span><span class="sw" style="background:#3E7CA6"></span>Leads</span>
+    <span><span class="sw" style="background:#C4622D"></span>Customers</span>
+    <span><span class="sw" style="background:#16202B"></span>Lead\u2192Customer %</span>`;
+}
+
+function renderCacChart(data){
+  const byChannel = {};
+  channels.forEach(c=> byChannel[c] = { spend:0, revenue:0, customers:0 });
+  data.forEach(d=>{
+    byChannel[d.channel].spend += d.spend;
+    byChannel[d.channel].revenue += d.revenue;
+    byChannel[d.channel].customers += d.customers;
+  });
+  const pts = channels.filter(c=>selectedChannels.has(c) && byChannel[c].spend>0).map(c=>{
+    const b = byChannel[c];
+    const cac = b.customers? b.spend/b.customers : 0;
+    const roi = b.spend? (b.revenue-b.spend)/b.spend*100 : 0;
+    return { x: cac, y: roi, r: Math.max(6, Math.sqrt(b.customers)*4), label: c };
+  });
+
+  const ctx = document.getElementById('cacChart');
+  if(cacChart) cacChart.destroy();
+  cacChart = new Chart(ctx, {
+    type:'bubble',
+    data:{ datasets: pts.map(p=>({ label:p.label, data:[p], backgroundColor: CHANNEL_COLORS[p.label]+'CC', borderColor:'#fff', borderWidth:1 })) },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      layout:{ padding: 16 },
+      scales:{
+        x:{ title:{display:true, text:'CAC ($)', font:{size:11}}, grid:{color:'#EEEBE3'} },
+        y:{ title:{display:true, text:'ROI (%)', font:{size:11}}, grid:{color:'#EEEBE3'} }
+      },
+      plugins:{
+        legend:{ display:false },
+        tooltip:{ callbacks:{ label:(c)=> `${c.dataset.label}: CAC $${Math.round(c.raw.x)}, ROI ${Math.round(c.raw.y)}%` } }
+      }
+    }
+  });
+}
+
+function renderTable(data){
+  const rows = channels.map(c=>{
+    const rows = data.filter(d=>d.channel===c);
+    const visitors = rows.reduce((a,d)=>a+d.visitors,0);
+    const leads = rows.reduce((a,d)=>a+d.leads,0);
+    const customers = rows.reduce((a,d)=>a+d.customers,0);
+    const spend = rows.reduce((a,d)=>a+d.spend,0);
+    const revenue = rows.reduce((a,d)=>a+d.revenue,0);
+    const v2l = visitors? leads/visitors*100 : 0;
+    const l2c = leads? customers/leads*100 : 0;
+    const cac = customers? spend/customers : null;
+    const roi = spend? (revenue-spend)/spend*100 : null;
+    return { c, visitors, leads, customers, v2l, l2c, cac, roi, active: selectedChannels.has(c) };
+  }).filter(r=>r.visitors>0).sort((a,b)=>b.l2c-a.l2c);
+
+  const tbody = document.querySelector('#channelTable tbody');
+  tbody.innerHTML = rows.map(r=>{
+    const pillClass = r.l2c >= 6 ? 'good' : (r.l2c <= 1.5 ? 'bad' : 'mid');
+    return `<tr class="${r.active?'':'dim'}" data-channel="${r.c}">
+      <td>${r.c}</td>
+      <td>${fmtInt(r.visitors)}</td>
+      <td>${fmtInt(r.leads)}</td>
+      <td>${fmtInt(r.customers)}</td>
+      <td>${fmtPct(r.v2l)}</td>
+      <td><span class="pill ${pillClass}">${fmtPct(r.l2c)}</span></td>
+      <td>${r.cac!=null ? fmtMoney(r.cac) : '\u2014'}</td>
+      <td>${r.roi!=null ? (r.roi>=0?'+':'')+Math.round(r.roi).toLocaleString()+'%' : '\u2014'}</td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('tr').forEach(tr=>{
+    tr.addEventListener('click', ()=>{
+      const c = tr.dataset.channel;
+      if(selectedChannels.size===1 && selectedChannels.has(c)){
+        selectedChannels = new Set(channels);
+      } else {
+        selectedChannels = new Set([c]);
+      }
+      document.querySelectorAll('.chip').forEach(chip=>{
+        chip.classList.toggle('active', selectedChannels.has(chip.dataset.channel));
+      });
+      render();
+    });
+  });
+}
+
+function renderInsights(data){
+  const totals = {};
+  STAGES.forEach(s=> totals[s] = data.reduce((a,d)=>a+d[s],0));
+  const l2c = totals.leads? totals.customers/totals.leads*100 : 0;
+  const v2l = totals.visitors? totals.leads/totals.visitors*100 : 0;
+
+  const byChannel = channels.map(c=>{
+    const rows = data.filter(d=>d.channel===c);
+    const leads = rows.reduce((a,d)=>a+d.leads,0);
+    const customers = rows.reduce((a,d)=>a+d.customers,0);
+    const spend = rows.reduce((a,d)=>a+d.spend,0);
+    const revenue = rows.reduce((a,d)=>a+d.revenue,0);
+    return { c, l2c: leads? customers/leads*100:0, roi: spend? (revenue-spend)/spend*100 : null, spend };
+  }).filter(x=>selectedChannels.has(x.c) && x.spend>=0);
+
+  const best = byChannel.filter(x=>x.l2c>0).sort((a,b)=>b.l2c-a.l2c)[0];
+  const worst = byChannel.filter(x=>x.spend>0).sort((a,b)=>a.l2c-b.l2c)[0];
+
+  const stagePairs = [['visitors','leads','Visitor\u2192Lead'],['leads','mqls','Lead\u2192MQL'],['mqls','sqls','MQL\u2192SQL'],['sqls','opportunities','SQL\u2192Opp'],['opportunities','customers','Opp\u2192Customer']];
+  let weakest = null;
+  stagePairs.forEach(([a,b,label])=>{
+    const rate = totals[a]? totals[b]/totals[a]*100 : 0;
+    if(!weakest || rate < weakest.rate) weakest = {label, rate};
+  });
+
+  const items = [
+    `Overall lead-to-customer conversion for this selection is <b>${fmtPct(l2c)}</b>, from <b>${fmtInt(totals.visitors)}</b> visitors and <b>${fmtInt(totals.leads)}</b> leads.`,
+    `Visitor-to-lead capture is <b>${fmtPct(v2l)}</b> &mdash; the weakest stage-to-stage step is <b>${weakest.label}</b> at <b>${fmtPct(weakest.rate)}</b>.`,
+  ];
+  if(best) items.push(`<b>${best.c}</b> has the strongest lead-to-customer rate in view at <b>${fmtPct(best.l2c)}</b>.`);
+  if(worst && worst.c !== (best&&best.c)) items.push(`<b>${worst.c}</b> is the weakest paid channel in view at <b>${fmtPct(worst.l2c)}</b> lead-to-customer${worst.roi!=null && worst.roi<0 ? ' and negative ROI' : ''}.`);
+  document.getElementById('insightList').innerHTML = items.map(i=>`<li>${i}</li>`).join('');
+}
+
+render();
+</script>
+</body>
+</html>
